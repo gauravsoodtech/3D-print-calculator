@@ -8,7 +8,14 @@ const geist = Geist({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
   title: "miniory3d - printed creations",
-  description: "Calculate true cost and selling price for FDM 3D print jobs",
+  description: "Custom 3D printed creations — get a quote for your next project.",
+  openGraph: {
+    title: "miniory3d - printed creations",
+    description: "Custom 3D printed creations — get a quote for your next project.",
+    url: "https://minory3d.vercel.app",
+    siteName: "miniory3d",
+    type: "website",
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
