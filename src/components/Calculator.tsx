@@ -129,6 +129,23 @@ export default function Calculator() {
   // On mount: restore draft from sessionStorage, fallback to settings defaults
   useEffect(() => {
     const s = loadSettings();
+
+    // window flag survives navigation (component unmount/remount) but is cleared on page refresh
+    const isNavigation = !!(window as Record<string, unknown>).__calcFormSession;
+    (window as Record<string, unknown>).__calcFormSession = true;
+
+    if (!isNavigation) {
+      // Page was refreshed — clear the draft and start fresh
+      sessionStorage.removeItem(DRAFT_KEY);
+      setFilamentPricePerKg(String(s.filamentPricePerKg));
+      setPrinterWatts(String(s.printerWatts));
+      setElectricityRate(String(s.electricityRatePerKwh));
+      setLaborRate(String(s.laborRatePerHour));
+      setPackaging(String(s.defaultPackagingPercent));
+      setMarkup(String(s.markupPercent));
+      return;
+    }
+
     const raw = sessionStorage.getItem(DRAFT_KEY);
     if (raw) {
       try {
@@ -152,6 +169,7 @@ export default function Calculator() {
         return;
       } catch { /* fall through to defaults */ }
     }
+    // No draft saved yet during this navigation session — load defaults
     setFilamentPricePerKg(String(s.filamentPricePerKg));
     setPrinterWatts(String(s.printerWatts));
     setElectricityRate(String(s.electricityRatePerKwh));
