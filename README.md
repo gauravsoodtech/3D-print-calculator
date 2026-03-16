@@ -1,8 +1,8 @@
 # 3D Print Cost Calculator
 
-A cost calculator for FDM 3D printing — built for sellers who want to price their prints accurately and track profitability over time.
+A cost calculator for FDM 3D printing — built for sellers who want to price their prints accurately, track profitability over time, and share professional quotations with clients.
 
-**Live:** [3d-print-calculator-mu.vercel.app](https://3d-print-calculator-mu.vercel.app)
+**Live:** [minory3d.vercel.app](https://minory3d.vercel.app)
 
 ---
 
@@ -16,7 +16,7 @@ Fill in details about a print job — filament used, print time, labor, post-pro
 - Profit and margin percentage
 - Rounded price suggestions (nearest ₹10 / ₹50 / ₹100)
 
-All jobs can be saved locally and viewed in a history table. No account needed — everything is stored in your browser.
+All jobs can be saved locally and viewed in a history table. Quotations can be created and shared with clients via a public link — no account needed on the client side.
 
 ---
 
@@ -50,6 +50,12 @@ Configure your personal defaults (saved to localStorage, pre-fill the calculator
 - Printer wattage
 - Electricity rate per kWh
 
+### Client Quotations
+- Create multi-line quotations from the admin panel
+- Attach STL files to individual line items (stored in Cloudflare R2)
+- Clients can view their quotation — including a 3D STL preview — via a shareable public link (`/q/<token>`)
+- No login required for client-facing quotation links
+
 ---
 
 ## Calculation formulas
@@ -77,11 +83,21 @@ Margin %          = (profit / selling_price) × 100
 | Framework | Next.js 16 (App Router) |
 | UI | React 19 + Tailwind CSS v4 |
 | Language | TypeScript |
-| Storage | Browser localStorage + sessionStorage |
+| Database | Neon Postgres (via Prisma) — quotation storage |
+| File storage | Cloudflare R2 — STL files |
+| Auth | JWT cookie (`admin_session`) — all pages protected |
+| Client storage | Browser localStorage + sessionStorage |
 | Testing | Vitest (26 unit tests) |
 | Deployment | Vercel (auto-deploy on push to main) |
 
-No database, no backend, no authentication — fully static and client-side.
+---
+
+## Access
+
+All pages (calculator, history, settings, admin) require login. The only public routes are:
+
+- `/login` — login page
+- `/q/<shareToken>` — client-facing quotation view
 
 ---
 
@@ -89,21 +105,34 @@ No database, no backend, no authentication — fully static and client-side.
 
 ```
 src/
+├── proxy.ts                     # Edge middleware — auth gate for all pages
 ├── app/
-│   ├── layout.tsx           # Root layout with navigation bar
-│   ├── page.tsx             # Calculator (main page)
-│   ├── history/page.tsx     # Saved job history
-│   └── settings/page.tsx    # Default values configuration
+│   ├── layout.tsx               # Root layout with navigation bar
+│   ├── page.tsx                 # Calculator (main page)
+│   ├── history/page.tsx         # Saved job history
+│   ├── settings/page.tsx        # Default values configuration
+│   ├── login/page.tsx           # Login page
+│   ├── q/[shareToken]/page.tsx  # Public client quotation view
+│   ├── admin/                   # Admin quotation management
+│   └── api/                     # Auth + quotation REST endpoints
 ├── components/
-│   ├── Calculator.tsx       # Main calculator form + form draft logic
-│   ├── CostBreakdown.tsx    # Live result card with cost bar
-│   ├── JobHistory.tsx       # History table with stats and CSV export
-│   ├── NavBar.tsx           # Sticky nav with active route highlighting
-│   └── SettingsForm.tsx     # Settings form
+│   ├── Calculator.tsx           # Main calculator form + form draft logic
+│   ├── CostBreakdown.tsx        # Live result card with cost bar
+│   ├── JobHistory.tsx           # History table with stats and CSV export
+│   ├── NavBar.tsx               # Sticky nav with active route highlighting
+│   ├── SettingsForm.tsx         # Settings form
+│   ├── AddToQuotationModal.tsx  # Add calc result to a quotation
+│   ├── QuotationItemForm.tsx    # Quotation line item form
+│   ├── STLViewer.tsx            # Three.js 3D STL renderer
+│   └── MainWrapper.tsx          # Root layout wrapper
 └── lib/
-    ├── calculations.ts      # Pure cost calculation functions
-    ├── calculations.test.ts # Vitest unit tests (26 tests)
-    └── storage.ts           # localStorage/sessionStorage helpers + CSV export
+    ├── calculations.ts          # Pure cost calculation functions
+    ├── calculations.test.ts     # Vitest unit tests (26 tests)
+    ├── storage.ts               # localStorage/sessionStorage helpers + CSV export
+    ├── types.ts                 # Shared TypeScript types
+    ├── auth.ts                  # JWT session helpers
+    ├── db.ts                    # Prisma client
+    └── r2.ts                    # Cloudflare R2 client
 ```
 
 ---
@@ -116,6 +145,18 @@ npm run dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000).
+
+Requires a `.env.local` with:
+```
+DATABASE_URL=          # Neon Postgres connection string
+JWT_SECRET=            # Secret for signing admin_session JWTs
+ADMIN_PASSWORD=        # Password for the /login page
+R2_ACCOUNT_ID=         # Cloudflare R2 account
+R2_ACCESS_KEY_ID=
+R2_SECRET_ACCESS_KEY=
+R2_BUCKET_NAME=
+R2_PUBLIC_URL=         # Public base URL for R2 bucket
+```
 
 ```bash
 # Run tests

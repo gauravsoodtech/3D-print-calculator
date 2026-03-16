@@ -7,7 +7,7 @@ import MainWrapper from "@/components/MainWrapper";
 const geist = Geist({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "3D Print Cost Calculator",
+  title: "miniory3d - printed creations",
   description: "Calculate true cost and selling price for FDM 3D print jobs",
 };
 

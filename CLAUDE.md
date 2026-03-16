@@ -4,9 +4,9 @@ This file provides guidance to Claude Code when working in this repository.
 
 ## Project overview
 
-A client-side 3D print cost calculator for FDM filament printing. Built for a seller (Bambu Lab P2S printer, based in Delhi, India) who needs to price jobs accurately and track profitability.
+A 3D print cost calculator for FDM filament printing. Built for a seller (Bambu Lab P2S printer, based in Delhi, India) who needs to price jobs accurately, track profitability, and share quotations with clients.
 
-- **Live URL:** https://3d-print-calculator-mu.vercel.app
+- **Live URL:** https://minory3d.vercel.app
 - **Repo:** https://github.com/gauravsoodtech/3D-print-calculator
 - **Deployment:** Vercel — auto-deploys on push to `main`
 
@@ -15,9 +15,11 @@ A client-side 3D print cost calculator for FDM filament printing. Built for a se
 - **Next.js 16** (App Router) + **React 19** + **TypeScript**
 - **Tailwind CSS v4** — dark theme (`zinc` palette, orange accents)
 - **Vitest** — unit tests for pure calculation functions only
+- **Neon Postgres** (via Prisma) — quotation storage
+- **Cloudflare R2** — STL file storage for quotation items
 - **localStorage** — settings and job history persistence
 - **sessionStorage** — form draft (persists across navigation, clears on page refresh)
-- No backend, no database, no authentication
+- **JWT cookie** (`admin_session`) — authentication for all app pages
 
 ## Environment
 
@@ -25,25 +27,74 @@ A client-side 3D print cost calculator for FDM filament printing. Built for a se
 - **Shell:** Use Unix shell syntax (forward slashes, etc.)
 - **Currency:** INR (₹) throughout — never change to USD or other currencies
 
+## Authentication
+
+All pages except `/login`, `/q/*`, and `/api/auth/*` are protected by `src/proxy.ts` (Next.js 16 middleware equivalent). Unauthenticated requests are redirected to `/login?next=<original-path>`.
+
+- Login endpoint: `POST /api/auth/login` — sets `admin_session` JWT cookie
+- Logout endpoint: `POST /api/auth/logout` — clears cookie
+- Session check: `src/lib/auth.ts` → `getSession()` / `requireAdmin()`
+- Proxy: `src/proxy.ts` — edge middleware, covers all routes
+
+**Public routes (no auth required):**
+- `/login` — login page
+- `/q/[shareToken]` — client-facing shareable quotation links
+- `/api/auth/*` — login and logout endpoints
+
 ## Project structure
 
 ```
 src/
+├── proxy.ts                     # Edge middleware — auth gate for all pages
 ├── app/
-│   ├── layout.tsx           # Root layout — uses NavBar, max-w-5xl container
-│   ├── page.tsx             # / → Calculator
-│   ├── history/page.tsx     # /history → JobHistory
-│   └── settings/page.tsx    # /settings → SettingsForm
+│   ├── layout.tsx               # Root layout — uses NavBar, max-w-5xl container
+│   ├── page.tsx                 # / → Calculator
+│   ├── history/page.tsx         # /history → JobHistory
+│   ├── settings/page.tsx        # /settings → SettingsForm
+│   ├── login/page.tsx           # /login → login form
+│   ├── q/[shareToken]/page.tsx  # /q/:token → public client quotation view
+│   ├── admin/
+│   │   ├── layout.tsx           # Admin layout — server-side session check (defence-in-depth)
+│   │   ├── page.tsx             # /admin → quotation list
+│   │   └── quotations/
+│   │       ├── new/page.tsx     # /admin/quotations/new
+│   │       └── [id]/page.tsx    # /admin/quotations/:id
+│   └── api/
+│       ├── auth/
+│       │   ├── login/route.ts
+│       │   └── logout/route.ts
+│       └── quotations/
+│           ├── route.ts                          # GET list, POST create
+│           └── [id]/
+│               ├── route.ts                      # GET, PATCH, DELETE
+│               └── items/
+│                   ├── route.ts                  # POST add item
+│                   └── [itemId]/
+│                       ├── route.ts              # PATCH, DELETE item
+│                       ├── stl-upload-url/route.ts
+│                       └── stl-confirm/route.ts
 ├── components/
-│   ├── Calculator.tsx       # Main form — all field state, sessionStorage draft, live calc
-│   ├── CostBreakdown.tsx    # Result card — cost bar, selling price, save button
-│   ├── JobHistory.tsx       # History table — stats, delete, CSV export
-│   ├── NavBar.tsx           # Sticky nav — active route via usePathname()
-│   └── SettingsForm.tsx     # Settings form — reads/writes localStorage
+│   ├── Calculator.tsx           # Main form — all field state, sessionStorage draft, live calc
+│   ├── CostBreakdown.tsx        # Result card — cost bar, selling price, save button
+│   ├── JobHistory.tsx           # History table — stats, delete, CSV export
+│   ├── NavBar.tsx               # Sticky nav — active route via usePathname()
+│   ├── SettingsForm.tsx         # Settings form — reads/writes localStorage
+│   ├── AddToQuotationModal.tsx  # Modal to add a calc result to a quotation
+│   ├── QuotationItemForm.tsx    # Form for individual quotation line items
+│   ├── STLUploadButton.tsx      # R2 upload trigger for STL files
+│   ├── STLViewer.tsx            # Three.js STL renderer (server wrapper)
+│   ├── STLViewerClient.tsx      # Three.js STL renderer (client component)
+│   └── MainWrapper.tsx          # Layout wrapper used by root layout
 └── lib/
-    ├── calculations.ts      # Pure functions: calculateJob, toPrintJob
-    ├── calculations.test.ts # Vitest tests (26 tests — all must stay passing)
-    └── storage.ts           # localStorage/sessionStorage helpers, types, CSV export
+    ├── calculations.ts          # Pure functions: calculateJob, toPrintJob
+    ├── calculations.test.ts     # Vitest tests (26 tests — all must stay passing)
+    ├── storage.ts               # localStorage/sessionStorage helpers, types, CSV export
+    ├── types.ts                 # Shared TypeScript types (Quotation, QuotationItem, etc.)
+    ├── auth.ts                  # getSession(), requireAdmin() — JWT helpers
+    ├── db.ts                    # Prisma client singleton
+    ├── r2.ts                    # Cloudflare R2 client
+    └── hooks/
+        └── useIsAdmin.ts        # Client hook — reads admin_session cookie presence
 ```
 
 ## Key data models
@@ -83,6 +134,11 @@ interface PrintJob {
 - `JobInputs` — all raw form values passed to `calculateJob()`
 - `JobCalcResult` — computed breakdown returned from `calculateJob()`
 - `toPrintJob(inputs, result)` — merges both into a `PrintJob` for saving
+
+### Quotation / QuotationItem (Neon Postgres via Prisma — see `src/lib/types.ts`)
+- Quotations are created in the admin, can contain multiple line items
+- Each item can have an attached STL file stored in R2
+- Quotations have a `shareToken` used in the public `/q/[shareToken]` URL
 
 ## Calculation formulas
 
@@ -132,7 +188,7 @@ npm run test:watch   # Vitest watch mode
 - **Do not commit** unless explicitly asked
 - **Do not add co-author tags** to commit messages
 - **All 26 Vitest tests must stay passing** — run `npm test` after any changes to `calculations.ts`
-- **No backend code** — this is a fully static client-side app, keep it that way
 - **Currency is always ₹ (INR)** — do not change labels, defaults, or hints to other currencies
 - **Printer model is Bambu Lab P2S** (~200W avg PLA, peak 1200W) — not P1S or any other model
 - **Tailwind dark theme** — background `zinc-950`, cards `zinc-900`, borders `zinc-800`, accents `orange-500`
+- **Auth middleware is `src/proxy.ts`** — Next.js 16 uses `proxy.ts` instead of `middleware.ts`; do not create a `middleware.ts`
