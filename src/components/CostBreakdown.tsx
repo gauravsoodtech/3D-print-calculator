@@ -2,6 +2,11 @@
 
 import { useState } from "react";
 import { JobCalcResult } from "@/lib/calculations";
+import { useIsAdmin } from "@/lib/hooks/useIsAdmin";
+import { QuotationItemDraft } from "@/lib/types";
+import dynamic from "next/dynamic";
+
+const AddToQuotationModal = dynamic(() => import("./AddToQuotationModal"), { ssr: false });
 
 const fmt = (n: number) =>
   "₹" + n.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
@@ -15,6 +20,7 @@ interface Props {
   onSave: () => void;
   canSave: boolean;
   saved: boolean;
+  currentInputs: QuotationItemDraft;
 }
 
 const SEGMENTS = [
@@ -25,9 +31,12 @@ const SEGMENTS = [
   { key: "packagingCost",      label: "Packaging",       color: "bg-emerald-500", text: "text-emerald-400" },
 ] as const;
 
-export default function CostBreakdown({ result, onSave, canSave, saved }: Props) {
+export default function CostBreakdown({ result, onSave, canSave, saved, currentInputs }: Props) {
   const { totalCost, sellingPrice, profit, marginPercent } = result;
   const [copied, setCopied] = useState(false);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [addedToQuotation, setAddedToQuotation] = useState(false);
+  const isAdmin = useIsAdmin();
 
   function copyPrice() {
     navigator.clipboard.writeText(sellingPrice.toFixed(2));
@@ -159,6 +168,34 @@ export default function CostBreakdown({ result, onSave, canSave, saved }: Props)
       >
         {saved ? "✓ Saved to History" : "Save Job"}
       </button>
+
+      {/* Add to Quotation — admin only */}
+      {isAdmin && (
+        <button
+          onClick={() => { setShowAddModal(true); setAddedToQuotation(false); }}
+          disabled={!hasData || addedToQuotation}
+          className={`w-full py-3 rounded-xl font-semibold text-sm transition-all border ${
+            addedToQuotation
+              ? "bg-emerald-500/20 border-emerald-500/30 text-emerald-400 cursor-default"
+              : hasData
+              ? "border-zinc-700 hover:border-orange-500/50 text-zinc-400 hover:text-orange-400"
+              : "border-zinc-800 text-zinc-700 cursor-not-allowed"
+          }`}
+        >
+          {addedToQuotation ? "✓ Added to Quotation" : "+ Add to Quotation"}
+        </button>
+      )}
+
+      {showAddModal && (
+        <AddToQuotationModal
+          draft={currentInputs}
+          onClose={() => setShowAddModal(false)}
+          onAdded={() => {
+            setShowAddModal(false);
+            setAddedToQuotation(true);
+          }}
+        />
+      )}
     </div>
   );
 }

@@ -4,6 +4,9 @@ import { useEffect, useState } from "react";
 import { loadSettings, saveJob } from "@/lib/storage";
 import { calculateJob, toPrintJob, JobCalcResult } from "@/lib/calculations";
 import CostBreakdown from "./CostBreakdown";
+import { QuotationItemDraft } from "@/lib/types";
+
+const QUALITY_OPTIONS = ["Draft", "Standard", "Fine", "Ultra"] as const;
 
 const DRAFT_KEY = "print_calc_form_draft";
 
@@ -123,6 +126,8 @@ export default function Calculator() {
   const [postProcessing, setPostProcessing] = useState("");
   const [packaging, setPackaging] = useState("");
   const [markup, setMarkup] = useState("");
+  const [quality, setQuality] = useState("Standard");
+  const [infillPercent, setInfillPercent] = useState("15");
   const [result, setResult] = useState<JobCalcResult>(ZERO_RESULT);
   const [saved, setSaved] = useState(false);
 
@@ -166,6 +171,8 @@ export default function Calculator() {
         setPostProcessing(d.postProcessing ?? "");
         setPackaging(d.packaging ?? String(s.defaultPackagingPercent));
         setMarkup(d.markup ?? String(s.markupPercent));
+        setQuality(d.quality ?? "Standard");
+        setInfillPercent(d.infillPercent ?? "15");
         return;
       } catch { /* fall through to defaults */ }
     }
@@ -186,10 +193,12 @@ export default function Calculator() {
       printHours, printMins, printerWatts, electricityRate,
       laborHours, laborMins, laborRate,
       postProcessing, packaging, markup,
+      quality, infillPercent,
     }));
   }, [name, filamentType, isCustom, customFilament, weightGrams, filamentPricePerKg,
       printHours, printMins, printerWatts, electricityRate,
-      laborHours, laborMins, laborRate, postProcessing, packaging, markup]);
+      laborHours, laborMins, laborRate, postProcessing, packaging, markup,
+      quality, infillPercent]);
 
   // Recalculate live
   useEffect(() => {
@@ -322,6 +331,23 @@ export default function Calculator() {
                 placeholder="1200" prefix="₹/kg" hint={priceHint} />
               <InputField label="Weight Used" value={weightGrams} onChange={setWeightGrams}
                 placeholder="50" prefix="g" />
+              <InputField label="Infill %" value={infillPercent} onChange={setInfillPercent}
+                placeholder="15" hint="Display only — does not affect cost" />
+              <div>
+                <label className="block text-xs font-medium text-zinc-400 mb-1.5">Quality</label>
+                <div className="flex gap-2">
+                  {QUALITY_OPTIONS.map((q) => (
+                    <button key={q} type="button" onClick={() => setQuality(q)}
+                      className={`flex-1 py-1.5 rounded-lg text-xs font-medium transition-all border ${
+                        quality === q
+                          ? "bg-orange-500/20 border-orange-500/50 text-orange-300"
+                          : "bg-zinc-800/60 border-zinc-700/60 text-zinc-400 hover:text-zinc-200 hover:border-zinc-600"
+                      }`}>
+                      {q}
+                    </button>
+                  ))}
+                </div>
+              </div>
             </div>
           </SectionCard>
 
@@ -356,7 +382,21 @@ export default function Calculator() {
 
         {/* Results */}
         <div className="sticky top-20">
-          <CostBreakdown result={result} onSave={handleSave} canSave={result.totalCost > 0 && !saved} saved={saved} />
+          <CostBreakdown
+            result={result}
+            onSave={handleSave}
+            canSave={result.totalCost > 0 && !saved}
+            saved={saved}
+            currentInputs={{
+              itemName: name.trim() || "Unnamed Job",
+              filamentType,
+              quality,
+              infillPercent: num(infillPercent),
+              printMinutes: num(printHours) * 60 + num(printMins),
+              weightGrams: num(weightGrams),
+              sellingPrice: result.sellingPrice,
+            } satisfies QuotationItemDraft}
+          />
         </div>
       </div>
     </div>

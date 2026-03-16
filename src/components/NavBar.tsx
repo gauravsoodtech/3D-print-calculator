@@ -2,15 +2,24 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useIsAdmin } from "@/lib/hooks/useIsAdmin";
 
-const LINKS = [
-  { href: "/", label: "Calculator", icon: "⬡" },
-  { href: "/history", label: "History", icon: "⊞" },
-  { href: "/settings", label: "Settings", icon: "⚙" },
+const BASE_LINKS = [
+  { href: "/", label: "Calculator" },
+  { href: "/history", label: "History" },
+  { href: "/settings", label: "Settings" },
 ];
 
 export default function NavBar() {
   const pathname = usePathname();
+  const isAdmin = useIsAdmin();
+
+  // Share/preview pages are standalone — no nav
+  if (pathname.startsWith("/q/")) return null;
+
+  const links = isAdmin
+    ? [...BASE_LINKS, { href: "/admin", label: "Quotations" }]
+    : BASE_LINKS;
 
   return (
     <nav className="sticky top-0 z-50 border-b border-white/[0.06] bg-zinc-950/80 backdrop-blur-md">
@@ -18,12 +27,12 @@ export default function NavBar() {
         <div className="flex items-center gap-2 mr-5">
           <span className="text-orange-500 text-xl">⬡</span>
           <span className="font-bold text-sm tracking-tight">
-            <span className="text-orange-400">Print</span>
-            <span className="text-zinc-100">Calc</span>
+            <span className="text-orange-400">miniory</span>
+            <span className="text-zinc-100">3D</span>
           </span>
         </div>
-        {LINKS.map(({ href, label }) => {
-          const active = pathname === href;
+        {links.map(({ href, label }) => {
+          const active = pathname === href || (href === "/admin" && pathname.startsWith("/admin"));
           return (
             <Link
               key={href}

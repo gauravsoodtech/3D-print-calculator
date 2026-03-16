@@ -1,0 +1,34 @@
+datasource db {
+  provider = "postgresql"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Quotation {
+  id              String          @id @default(cuid())
+  quotationNumber String          @unique
+  clientName      String
+  shareToken      String          @unique @default(cuid())
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  items           QuotationItem[]
+}
+
+model QuotationItem {
+  id            String    @id @default(cuid())
+  quotationId   String
+  quotation     Quotation @relation(fields: [quotationId], references: [id], onDelete: Cascade)
+  sortOrder     Int       @default(0)
+  itemName      String
+  filamentType  String
+  quality       String
+  infillPercent Int       @default(15)
+  printMinutes  Int
+  weightGrams   Float
+  sellingPrice  Float
+  stlKey        String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
