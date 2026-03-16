@@ -22,6 +22,7 @@ interface Quotation {
   id: string;
   quotationNumber: string;
   clientName: string;
+  clientNote: string | null;
   shareToken: string;
   items: QuotationItem[];
 }
@@ -50,6 +51,7 @@ export default function EditQuotationPage({
   const [editingMeta, setEditingMeta] = useState(false);
   const [metaNumber, setMetaNumber] = useState("");
   const [metaClient, setMetaClient] = useState("");
+  const [metaNote, setMetaNote] = useState("");
 
   useEffect(() => {
     fetch(`/api/quotations/${id}`)
@@ -58,6 +60,7 @@ export default function EditQuotationPage({
         setQuotation(data);
         setMetaNumber(data.quotationNumber ?? "");
         setMetaClient(data.clientName ?? "");
+        setMetaNote(data.clientNote ?? "");
         setLoading(false);
       })
       .catch(() => setLoading(false));
@@ -67,7 +70,7 @@ export default function EditQuotationPage({
     const res = await fetch(`/api/quotations/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ quotationNumber: metaNumber, clientName: metaClient }),
+      body: JSON.stringify({ quotationNumber: metaNumber, clientName: metaClient, clientNote: metaNote || null }),
     });
     if (res.ok) {
       const data = await res.json();
@@ -114,6 +117,21 @@ export default function EditQuotationPage({
         items: prev.items.map((i) => (i.id === itemId ? { ...i, stlKey } : i)),
       };
     });
+  }
+
+  function handleStlDeleted(itemId: string) {
+    setQuotation((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        items: prev.items.map((i) => (i.id === itemId ? { ...i, stlKey: null } : i)),
+      };
+    });
+  }
+
+  async function handleStlDelete(itemId: string) {
+    await fetch(`/api/quotations/${id}/items/${itemId}/stl`, { method: "DELETE" });
+    handleStlDeleted(itemId);
   }
 
   if (loading) {
@@ -168,6 +186,19 @@ export default function EditQuotationPage({
               </button>
             )}
           </div>
+          {editingMeta ? (
+            <div className="mt-2 flex items-start gap-2">
+              <textarea
+                value={metaNote}
+                onChange={(e) => setMetaNote(e.target.value)}
+                placeholder="Client note (optional — shown on their quotation page)"
+                rows={2}
+                className="bg-zinc-800 border border-zinc-700 rounded-lg px-2 py-1 text-sm text-zinc-100 focus:outline-none focus:border-orange-500/60 w-80 resize-none"
+              />
+            </div>
+          ) : quotation.clientNote ? (
+            <p className="mt-1 text-xs text-zinc-500 italic max-w-sm truncate">{quotation.clientNote}</p>
+          ) : null}
           {total > 0 && (
             <p className="text-sm text-zinc-500 ml-0">
               {quotation.items.length} item{quotation.items.length !== 1 ? "s" : ""} · {fmt(total)} total
@@ -215,7 +246,15 @@ export default function EditQuotationPage({
                   <span className="text-orange-400 font-medium text-sm">{fmt(item.sellingPrice)}</span>
                 </div>
                 {item.stlKey && (
-                  <p className="mt-1 text-xs text-emerald-500">✓ STL uploaded</p>
+                  <div className="mt-1 flex items-center gap-2">
+                    <span className="text-xs text-emerald-500">✓ STL uploaded</span>
+                    <button
+                      onClick={() => handleStlDelete(item.id)}
+                      className="text-xs text-zinc-500 hover:text-red-400 transition-colors"
+                    >
+                      Remove
+                    </button>
+                  </div>
                 )}
               </div>
 

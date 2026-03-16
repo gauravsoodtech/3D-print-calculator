@@ -1,7 +1,31 @@
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
 import { R2_PUBLIC_BASE_URL } from "@/lib/r2";
 import STLViewerClient from "@/components/STLViewerClient";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ shareToken: string }>;
+}): Promise<Metadata> {
+  const { shareToken } = await params;
+  const quotation = await db.quotation.findUnique({ where: { shareToken } });
+  if (!quotation) return {};
+  const title = `Quotation for ${quotation.clientName} · miniory3D`;
+  const description = `${quotation.quotationNumber} — custom 3D print quotation from miniory3D`;
+  return {
+    title,
+    description,
+    openGraph: {
+      title,
+      description,
+      url: `https://minory3d.vercel.app/q/${shareToken}`,
+      siteName: "miniory3D",
+      type: "website",
+    },
+  };
+}
 
 interface QuotationItemRow {
   id: string;
@@ -89,9 +113,30 @@ export default async function PublicQuotationPage({
             For{" "}
             <span className="text-orange-400">{quotation.clientName}</span>
           </h1>
-          <p className="text-sm text-zinc-500 mt-1">
-            {items.length} item{items.length !== 1 ? "s" : ""}
-          </p>
+          <div className="flex items-center gap-3 mt-1 flex-wrap">
+            <p className="text-sm text-zinc-500">
+              {items.length} item{items.length !== 1 ? "s" : ""}
+            </p>
+            {items.length > 1 && (
+              <div className="flex items-center gap-1.5">
+                {items.map((item, idx) => (
+                  <a
+                    key={item.id}
+                    href={`#item-${idx + 1}`}
+                    title={item.itemName}
+                    className="w-6 h-6 rounded-full bg-zinc-800 border border-zinc-700 hover:border-orange-500/60 hover:bg-zinc-700 flex items-center justify-center text-[10px] font-mono text-zinc-400 hover:text-orange-400 transition-all"
+                  >
+                    {idx + 1}
+                  </a>
+                ))}
+              </div>
+            )}
+          </div>
+          {quotation.clientNote && (
+            <p className="mt-4 text-sm text-zinc-300 bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 whitespace-pre-wrap">
+              {quotation.clientNote}
+            </p>
+          )}
         </div>
 
         {/* Items */}
@@ -109,10 +154,11 @@ export default async function PublicQuotationPage({
               return (
                 <div
                   key={item.id}
-                  className="bg-zinc-900 border border-zinc-800/70 rounded-2xl overflow-hidden flex flex-col md:flex-row"
+                  id={`item-${idx + 1}`}
+                  className="bg-zinc-900 border border-zinc-800/70 rounded-2xl overflow-hidden flex flex-col md:flex-row scroll-mt-20"
                 >
                   {/* Left: 3D viewer or placeholder */}
-                  <div className="md:w-[45%] shrink-0 bg-zinc-950 flex items-center justify-center h-[280px] md:h-auto md:self-stretch relative">
+                  <div className="md:w-[45%] shrink-0 bg-zinc-950 flex items-center justify-center h-[200px] md:h-auto md:self-stretch relative">
                     {stlUrl ? (
                       <STLViewerClient stlUrl={stlUrl} />
                     ) : (

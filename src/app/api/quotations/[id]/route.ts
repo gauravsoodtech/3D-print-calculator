@@ -41,6 +41,7 @@ export async function PATCH(
       data: {
         ...(data.quotationNumber !== undefined && { quotationNumber: data.quotationNumber }),
         ...(data.clientName !== undefined && { clientName: data.clientName }),
+        ...("clientNote" in data && { clientNote: data.clientNote }),
       },
       include: { items: { orderBy: { sortOrder: "asc" } } },
     });

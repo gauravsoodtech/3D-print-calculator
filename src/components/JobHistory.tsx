@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { loadJobs, deleteJob, exportJobsCSV, PrintJob } from "@/lib/storage";
+import { exportJobsCSV, PrintJob } from "@/lib/storage";
 
 const fmt = (n: number) =>
   "₹" + n.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
@@ -53,12 +53,21 @@ export default function JobHistory() {
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
 
   useEffect(() => {
-    setJobs(loadJobs());
+    fetch("/api/jobs")
+      .then((r) => r.json())
+      .then((data) => {
+        // API returns date as ISO string; normalise to match PrintJob shape
+        setJobs(data.map((j: PrintJob & { date: string | Date }) => ({
+          ...j,
+          date: typeof j.date === "string" ? j.date : new Date(j.date).toISOString(),
+        })));
+      })
+      .catch(() => {});
   }, []);
 
-  function handleDelete(id: string) {
+  async function handleDelete(id: string) {
     if (deleteConfirm === id) {
-      deleteJob(id);
+      await fetch(`/api/jobs/${id}`, { method: "DELETE" });
       setJobs((prev) => prev.filter((j) => j.id !== id));
       setDeleteConfirm(null);
     } else {

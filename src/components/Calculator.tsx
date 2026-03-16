@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { loadSettings, saveJob } from "@/lib/storage";
+import { loadSettings } from "@/lib/storage";
 import { calculateJob, toPrintJob, JobCalcResult } from "@/lib/calculations";
 import CostBreakdown from "./CostBreakdown";
 import { QuotationItemDraft } from "@/lib/types";
@@ -237,7 +237,7 @@ export default function Calculator() {
     setFilamentType(customFilament);
   }
 
-  function handleSave() {
+  async function handleSave() {
     const job = toPrintJob(
       {
         name: name.trim() || "Unnamed Job",
@@ -255,7 +255,11 @@ export default function Calculator() {
       },
       result
     );
-    saveJob(job);
+    await fetch("/api/jobs", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(job),
+    });
     setSaved(true);
   }
 
