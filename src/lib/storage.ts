@@ -2,7 +2,7 @@ export interface Settings {
   filamentPricePerKg: number;
   laborRatePerHour: number;
   markupPercent: number;
-  defaultPackagingCost: number;
+  defaultPackagingPercent: number;
 }
 
 export interface PrintJob {
@@ -27,7 +27,7 @@ export const DEFAULT_SETTINGS: Settings = {
   filamentPricePerKg: 1200,
   laborRatePerHour: 200,
   markupPercent: 40,
-  defaultPackagingCost: 20,
+  defaultPackagingPercent: 20,
 };
 
 export function loadSettings(): Settings {

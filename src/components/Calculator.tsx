@@ -161,7 +161,7 @@ export default function Calculator() {
     setFilamentPricePerKg(String(s.filamentPricePerKg));
     setLaborRate(String(s.laborRatePerHour));
     setMarkup(String(s.markupPercent));
-    setPackaging(String(s.defaultPackagingCost));
+    setPackaging(String(s.defaultPackagingPercent));
   }, []);
 
   useEffect(() => {
@@ -174,7 +174,7 @@ export default function Calculator() {
       laborMinutes: totalLaborMinutes,
       laborRatePerHour: num(laborRate),
       postProcessingCost: num(postProcessing),
-      packagingCost: num(packaging),
+      packagingPercent: num(packaging),
       markupPercent: num(markup),
     });
     setResult(r);
@@ -213,7 +213,7 @@ export default function Calculator() {
         laborMinutes: totalLaborMinutes,
         laborRatePerHour: num(laborRate),
         postProcessingCost: num(postProcessing),
-        packagingCost: num(packaging),
+        packagingPercent: num(packaging),
         markupPercent: num(markup),
       },
       result
@@ -373,8 +373,8 @@ export default function Calculator() {
                 value={packaging}
                 onChange={setPackaging}
                 placeholder="20"
-                prefix="₹"
-                hint="Box, foam, tape…"
+                prefix="%"
+                hint="% of material + labor + post-processing"
               />
               <InputField
                 label="Markup"

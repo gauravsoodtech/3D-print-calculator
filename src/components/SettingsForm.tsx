@@ -51,7 +51,7 @@ export default function SettingsForm() {
     setFilamentPrice(String(s.filamentPricePerKg));
     setLaborRate(String(s.laborRatePerHour));
     setMarkup(String(s.markupPercent));
-    setPackaging(String(s.defaultPackagingCost));
+    setPackaging(String(s.defaultPackagingPercent));
   }, []);
 
   function handleSave(e: React.FormEvent) {
@@ -60,7 +60,7 @@ export default function SettingsForm() {
       filamentPricePerKg: parseFloat(filamentPrice) || DEFAULT_SETTINGS.filamentPricePerKg,
       laborRatePerHour: parseFloat(laborRate) || DEFAULT_SETTINGS.laborRatePerHour,
       markupPercent: parseFloat(markup) || DEFAULT_SETTINGS.markupPercent,
-      defaultPackagingCost: parseFloat(packaging) || DEFAULT_SETTINGS.defaultPackagingCost,
+      defaultPackagingPercent: parseFloat(packaging) || DEFAULT_SETTINGS.defaultPackagingPercent,
     });
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
@@ -99,10 +99,10 @@ export default function SettingsForm() {
         />
         <SettingField
           label="Default Packaging"
-          description="Typical box, foam & tape cost per job"
+          description="% of subtotal (material + labor + post-processing)"
           value={packaging}
           onChange={handleChange(setPackaging)}
-          prefix="₹"
+          prefix="%"
         />
       </div>
 
