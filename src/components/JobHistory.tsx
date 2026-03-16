@@ -51,18 +51,27 @@ function TypeBadge({ type }: { type: string }) {
 export default function JobHistory() {
   const [jobs, setJobs] = useState<PrintJob[]>([]);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState(false);
 
   useEffect(() => {
     fetch("/api/jobs")
-      .then((r) => r.json())
+      .then((r) => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        return r.json();
+      })
       .then((data) => {
-        // API returns date as ISO string; normalise to match PrintJob shape
+        if (!Array.isArray(data)) throw new Error("unexpected response");
         setJobs(data.map((j: PrintJob & { date: string | Date }) => ({
           ...j,
           date: typeof j.date === "string" ? j.date : new Date(j.date).toISOString(),
         })));
+        setLoading(false);
       })
-      .catch(() => {});
+      .catch(() => {
+        setFetchError(true);
+        setLoading(false);
+      });
   }, []);
 
   async function handleDelete(id: string) {
@@ -82,6 +91,19 @@ export default function JobHistory() {
   const avgMarkup = jobs.length > 0
     ? jobs.reduce((s, j) => s + j.markupPercent, 0) / jobs.length
     : 0;
+
+  if (loading) {
+    return <div className="text-zinc-500 text-sm py-24 text-center">Loading history…</div>;
+  }
+
+  if (fetchError) {
+    return (
+      <div className="flex flex-col items-center justify-center py-24 text-center">
+        <p className="text-lg font-semibold text-zinc-300">Could not load history</p>
+        <p className="text-sm text-zinc-600 mt-1">Check your connection and try refreshing the page.</p>
+      </div>
+    );
+  }
 
   if (jobs.length === 0) {
     return (

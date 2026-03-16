@@ -255,12 +255,16 @@ export default function Calculator() {
       },
       result
     );
-    await fetch("/api/jobs", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(job),
-    });
-    setSaved(true);
+    try {
+      const res = await fetch("/api/jobs", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(job),
+      });
+      if (res.ok) setSaved(true);
+    } catch {
+      // network error — silent fail, button stays enabled so user can retry
+    }
   }
 
   const perGramPrice = num(filamentPricePerKg) > 0
