@@ -131,8 +131,8 @@ export default function Calculator() {
     const s = loadSettings();
 
     // window flag survives navigation (component unmount/remount) but is cleared on page refresh
-    const isNavigation = !!(window as Record<string, unknown>).__calcFormSession;
-    (window as Record<string, unknown>).__calcFormSession = true;
+    const isNavigation = !!(window as unknown as Record<string, unknown>).__calcFormSession;
+    (window as unknown as Record<string, unknown>).__calcFormSession = true;
 
     if (!isNavigation) {
       // Page was refreshed — clear the draft and start fresh
