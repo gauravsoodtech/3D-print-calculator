@@ -99,7 +99,7 @@ export default function AdminPage() {
             return (
               <div
                 key={q.id}
-                className="bg-zinc-900 border border-zinc-800/80 rounded-2xl p-5 flex items-center justify-between gap-4"
+                className="bg-zinc-900 border border-zinc-800/80 rounded-2xl p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3"
               >
                 <div className="min-w-0">
                   <div className="flex items-center gap-3">
@@ -117,7 +117,7 @@ export default function AdminPage() {
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2 shrink-0">
+                <div className="flex items-center gap-2">
                   <button
                     onClick={() => copyShareLink(q.shareToken, q.id)}
                     className="px-3 py-1.5 text-xs font-medium border border-zinc-700 hover:border-zinc-600 text-zinc-400 hover:text-zinc-100 rounded-lg transition-all"

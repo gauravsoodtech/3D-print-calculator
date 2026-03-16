@@ -26,17 +26,16 @@ function StatCard({
   );
 }
 
-// Simple filament type badge colors
 const TYPE_COLORS: Record<string, string> = {
-  PLA:      "bg-green-500/15 text-green-400 border-green-500/20",
-  "PLA+":   "bg-emerald-500/15 text-emerald-400 border-emerald-500/20",
-  PETG:     "bg-blue-500/15 text-blue-400 border-blue-500/20",
-  ABS:      "bg-orange-500/15 text-orange-400 border-orange-500/20",
-  ASA:      "bg-amber-500/15 text-amber-400 border-amber-500/20",
-  TPU:      "bg-purple-500/15 text-purple-400 border-purple-500/20",
-  Nylon:    "bg-pink-500/15 text-pink-400 border-pink-500/20",
+  PLA:        "bg-green-500/15 text-green-400 border-green-500/20",
+  "PLA+":     "bg-emerald-500/15 text-emerald-400 border-emerald-500/20",
+  PETG:       "bg-blue-500/15 text-blue-400 border-blue-500/20",
+  ABS:        "bg-orange-500/15 text-orange-400 border-orange-500/20",
+  ASA:        "bg-amber-500/15 text-amber-400 border-amber-500/20",
+  TPU:        "bg-purple-500/15 text-purple-400 border-purple-500/20",
+  Nylon:      "bg-pink-500/15 text-pink-400 border-pink-500/20",
   "Silk PLA": "bg-yellow-500/15 text-yellow-400 border-yellow-500/20",
-  Carbon:   "bg-zinc-500/15 text-zinc-400 border-zinc-500/20",
+  Carbon:     "bg-zinc-500/15 text-zinc-400 border-zinc-500/20",
 };
 
 function TypeBadge({ type }: { type: string }) {
@@ -81,8 +80,7 @@ export default function JobHistory() {
       setDeleteConfirm(null);
     } else {
       setDeleteConfirm(id);
-      // Auto-cancel after 2s
-      setTimeout(() => setDeleteConfirm(null), 2000);
+      setTimeout(() => setDeleteConfirm((cur) => (cur === id ? null : cur)), 3000);
     }
   }
 
@@ -123,30 +121,18 @@ export default function JobHistory() {
     <div className="space-y-6">
       {/* Stats row */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <StatCard
-          label="Total Jobs"
-          value={String(jobs.length)}
-          color="border-zinc-800"
-        />
-        <StatCard
-          label="Total Revenue"
-          value={fmt(totalRevenue)}
-          color="border-orange-500/20"
-        />
+        <StatCard label="Total Jobs" value={String(jobs.length)} color="border-zinc-800" />
+        <StatCard label="Total Revenue" value={fmt(totalRevenue)} color="border-orange-500/20" />
         <StatCard
           label="Total Profit"
           value={fmt(totalProfit)}
           sub={totalRevenue > 0 ? `${((totalProfit / totalRevenue) * 100).toFixed(1)}% margin` : undefined}
           color={totalProfit >= 0 ? "border-emerald-500/20" : "border-red-500/20"}
         />
-        <StatCard
-          label="Avg Markup"
-          value={`${avgMarkup.toFixed(0)}%`}
-          color="border-zinc-800"
-        />
+        <StatCard label="Avg Markup" value={`${avgMarkup.toFixed(0)}%`} color="border-zinc-800" />
       </div>
 
-      {/* Table header row */}
+      {/* Header row */}
       <div className="flex items-center justify-between">
         <p className="text-sm text-zinc-500">
           {jobs.length} job{jobs.length !== 1 ? "s" : ""}
@@ -159,8 +145,53 @@ export default function JobHistory() {
         </button>
       </div>
 
-      {/* Table */}
-      <div className="overflow-x-auto rounded-2xl border border-zinc-800">
+      {/* Mobile: card list */}
+      <div className="sm:hidden space-y-3">
+        {jobs.map((job) => (
+          <div key={job.id} className="bg-zinc-900 border border-zinc-800/80 rounded-2xl p-4">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <p className="font-semibold text-zinc-100 truncate">{job.name}</p>
+                <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+                  <TypeBadge type={job.filamentType} />
+                  <span className="text-xs text-zinc-500">
+                    {new Date(job.date).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}
+                  </span>
+                </div>
+              </div>
+              <button
+                onClick={() => handleDelete(job.id)}
+                className={`shrink-0 text-xs px-2.5 py-1 rounded-lg border transition-all ${
+                  deleteConfirm === job.id
+                    ? "bg-red-500/20 border-red-500/40 text-red-400"
+                    : "border-zinc-700 text-zinc-500 hover:border-red-500/40 hover:text-red-400"
+                }`}
+              >
+                {deleteConfirm === job.id ? "Sure?" : "Delete"}
+              </button>
+            </div>
+            <div className="mt-3 grid grid-cols-3 gap-2">
+              <div className="bg-zinc-800/50 rounded-xl p-2.5 text-center">
+                <p className="text-[10px] text-zinc-500 uppercase tracking-wide mb-0.5">Cost</p>
+                <p className="text-xs font-semibold text-zinc-300 tabular-nums">{fmt(job.totalCost)}</p>
+              </div>
+              <div className="bg-zinc-800/50 rounded-xl p-2.5 text-center">
+                <p className="text-[10px] text-zinc-500 uppercase tracking-wide mb-0.5">Sell</p>
+                <p className="text-xs font-semibold text-orange-400 tabular-nums">{fmt(job.sellingPrice)}</p>
+              </div>
+              <div className="bg-zinc-800/50 rounded-xl p-2.5 text-center">
+                <p className="text-[10px] text-zinc-500 uppercase tracking-wide mb-0.5">Profit</p>
+                <p className={`text-xs font-semibold tabular-nums ${job.profit >= 0 ? "text-emerald-400" : "text-red-400"}`}>
+                  {fmt(job.profit)}
+                </p>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Desktop: table */}
+      <div className="hidden sm:block overflow-x-auto rounded-2xl border border-zinc-800">
         <table className="w-full text-sm">
           <thead>
             <tr className="bg-zinc-900 border-b border-zinc-800">
@@ -176,20 +207,11 @@ export default function JobHistory() {
           </thead>
           <tbody>
             {jobs.map((job) => (
-              <tr
-                key={job.id}
-                className="border-t border-zinc-800/60 hover:bg-zinc-800/30 transition-colors group"
-              >
+              <tr key={job.id} className="border-t border-zinc-800/60 hover:bg-zinc-800/30 transition-colors group">
                 <td className="px-4 py-3 font-medium text-zinc-100 max-w-[140px] truncate">{job.name}</td>
-                <td className="px-4 py-3">
-                  <TypeBadge type={job.filamentType} />
-                </td>
+                <td className="px-4 py-3"><TypeBadge type={job.filamentType} /></td>
                 <td className="px-4 py-3 text-zinc-500 whitespace-nowrap text-xs">
-                  {new Date(job.date).toLocaleDateString("en-IN", {
-                    day: "2-digit",
-                    month: "short",
-                    year: "numeric",
-                  })}
+                  {new Date(job.date).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}
                 </td>
                 <td className="px-4 py-3 text-right text-zinc-300 tabular-nums">{fmt(job.totalCost)}</td>
                 <td className="px-4 py-3 text-right text-orange-400 font-semibold tabular-nums">{fmt(job.sellingPrice)}</td>
@@ -203,7 +225,7 @@ export default function JobHistory() {
                     className={`text-xs px-2 py-0.5 rounded transition-all ${
                       deleteConfirm === job.id
                         ? "bg-red-500/20 text-red-400 border border-red-500/30"
-                        : "text-zinc-700 hover:text-red-400 opacity-0 group-hover:opacity-100"
+                        : "text-zinc-600 hover:text-red-400 border border-transparent hover:border-red-500/30"
                     }`}
                     title={deleteConfirm === job.id ? "Click again to confirm" : "Delete"}
                   >

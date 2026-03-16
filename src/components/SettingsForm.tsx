@@ -17,13 +17,13 @@ function SettingField({
   prefix: string;
 }) {
   return (
-    <div className="flex items-center justify-between gap-4 py-4 border-b border-zinc-800/60 last:border-0">
+    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-4 py-4 border-b border-zinc-800/60 last:border-0">
       <div>
         <p className="text-sm font-medium text-zinc-200">{label}</p>
         <p className="text-xs text-zinc-500 mt-0.5">{description}</p>
       </div>
-      <div className="relative shrink-0 w-36">
-        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500 text-sm pointer-events-none select-none">
+      <div className="flex sm:w-36 sm:shrink-0">
+        <span className="flex items-center bg-zinc-800 border border-zinc-700/60 border-r-0 rounded-l-xl px-2.5 text-xs text-zinc-500 whitespace-nowrap select-none shrink-0">
           {prefix}
         </span>
         <input
@@ -31,7 +31,7 @@ function SettingField({
           min="0"
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          className="w-full bg-zinc-800/60 border border-zinc-700/60 rounded-xl text-sm text-zinc-100 pl-10 pr-3 py-2.5
+          className="flex-1 min-w-0 bg-zinc-800/60 border border-zinc-700/60 rounded-r-xl text-sm text-zinc-100 px-3 py-2.5
             focus:outline-none focus:border-orange-500/60 focus:ring-2 focus:ring-orange-500/15 transition-all text-right"
         />
       </div>

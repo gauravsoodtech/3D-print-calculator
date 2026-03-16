@@ -23,7 +23,7 @@ export default function NavBar() {
 
   return (
     <nav className="sticky top-0 z-50 border-b border-white/[0.06] bg-zinc-950/80 backdrop-blur-md">
-      <div className="max-w-5xl mx-auto px-4 h-14 flex items-center gap-1">
+      <div className="max-w-5xl mx-auto px-4 h-14 flex items-center gap-1 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         <div className="flex items-center gap-2 mr-5">
           <span className="text-orange-500 text-xl">⬡</span>
           <span className="font-bold text-sm tracking-tight">
@@ -37,7 +37,7 @@ export default function NavBar() {
             <Link
               key={href}
               href={href}
-              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
+              className={`px-2.5 sm:px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium whitespace-nowrap transition-all ${
                 active
                   ? "bg-orange-500/15 text-orange-400 border border-orange-500/20"
                   : "text-zinc-400 hover:text-zinc-100 hover:bg-white/5"

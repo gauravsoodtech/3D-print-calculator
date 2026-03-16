@@ -48,9 +48,9 @@ function InputField({
   return (
     <div>
       <label className="block text-xs font-medium text-zinc-400 mb-1.5">{label}</label>
-      <div className="relative">
+      <div className="flex">
         {prefix && (
-          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500 text-sm select-none pointer-events-none">
+          <span className="flex items-center bg-zinc-800 border border-zinc-700/60 border-r-0 rounded-l-xl px-2.5 text-xs text-zinc-500 whitespace-nowrap select-none shrink-0">
             {prefix}
           </span>
         )}
@@ -60,9 +60,9 @@ function InputField({
           value={value}
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder}
-          className={`w-full bg-zinc-800/60 border border-zinc-700/60 rounded-xl text-sm text-zinc-100 placeholder-zinc-600
+          className={`bg-zinc-800/60 border border-zinc-700/60 text-sm text-zinc-100 placeholder-zinc-600
             focus:outline-none focus:border-orange-500/60 focus:ring-2 focus:ring-orange-500/15 transition-all
-            ${prefix ? "pl-7 pr-3 py-2.5" : "px-3 py-2.5"}`}
+            ${prefix ? "rounded-r-xl flex-1 min-w-0 px-3 py-2.5" : "rounded-xl w-full px-3 py-2.5"}`}
         />
       </div>
       {hint && <p className="mt-1 text-xs text-zinc-600">{hint}</p>}
@@ -389,7 +389,7 @@ export default function Calculator() {
         </div>
 
         {/* Results */}
-        <div className="sticky top-20">
+        <div className="sticky top-20 order-first lg:order-none">
           <CostBreakdown
             result={result}
             onSave={handleSave}
