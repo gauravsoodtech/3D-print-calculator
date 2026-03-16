@@ -44,6 +44,8 @@ export default function SettingsForm() {
   const [laborRate, setLaborRate] = useState("");
   const [markup, setMarkup] = useState("");
   const [packaging, setPackaging] = useState("");
+  const [printerWatts, setPrinterWatts] = useState("");
+  const [electricityRate, setElectricityRate] = useState("");
   const [saved, setSaved] = useState(false);
 
   useEffect(() => {
@@ -52,6 +54,8 @@ export default function SettingsForm() {
     setLaborRate(String(s.laborRatePerHour));
     setMarkup(String(s.markupPercent));
     setPackaging(String(s.defaultPackagingPercent));
+    setPrinterWatts(String(s.printerWatts));
+    setElectricityRate(String(s.electricityRatePerKwh));
   }, []);
 
   function handleSave(e: React.FormEvent) {
@@ -61,6 +65,8 @@ export default function SettingsForm() {
       laborRatePerHour: parseFloat(laborRate) || DEFAULT_SETTINGS.laborRatePerHour,
       markupPercent: parseFloat(markup) || DEFAULT_SETTINGS.markupPercent,
       defaultPackagingPercent: parseFloat(packaging) || DEFAULT_SETTINGS.defaultPackagingPercent,
+      printerWatts: parseFloat(printerWatts) || DEFAULT_SETTINGS.printerWatts,
+      electricityRatePerKwh: parseFloat(electricityRate) || DEFAULT_SETTINGS.electricityRatePerKwh,
     });
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
@@ -103,6 +109,20 @@ export default function SettingsForm() {
           value={packaging}
           onChange={handleChange(setPackaging)}
           prefix="%"
+        />
+        <SettingField
+          label="Printer Power"
+          description="Bambu P2S: ~200W during PLA printing, peak 1200W"
+          value={printerWatts}
+          onChange={handleChange(setPrinterWatts)}
+          prefix="W"
+        />
+        <SettingField
+          label="Electricity Rate"
+          description="Delhi domestic: ₹6.50/kWh (401–800 units slab)"
+          value={electricityRate}
+          onChange={handleChange(setElectricityRate)}
+          prefix="₹/kWh"
         />
       </div>
 

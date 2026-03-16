@@ -20,6 +20,7 @@ interface Props {
 const SEGMENTS = [
   { key: "materialCost",       label: "Material",        color: "bg-orange-500",  text: "text-orange-400" },
   { key: "laborCost",          label: "Labor",           color: "bg-blue-500",    text: "text-blue-400" },
+  { key: "electricityCost",    label: "Electricity",     color: "bg-yellow-500",  text: "text-yellow-400" },
   { key: "postProcessingCost", label: "Post-processing", color: "bg-purple-500",  text: "text-purple-400" },
   { key: "packagingCost",      label: "Packaging",       color: "bg-emerald-500", text: "text-emerald-400" },
 ] as const;

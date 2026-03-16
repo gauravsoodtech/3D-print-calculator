@@ -3,6 +3,8 @@ export interface Settings {
   laborRatePerHour: number;
   markupPercent: number;
   defaultPackagingPercent: number;
+  printerWatts: number;
+  electricityRatePerKwh: number;
 }
 
 export interface PrintJob {
@@ -14,6 +16,7 @@ export interface PrintJob {
   laborCost: number;
   postProcessingCost: number;
   packagingCost: number;
+  electricityCost: number;
   totalCost: number;
   sellingPrice: number;
   profit: number;
@@ -28,6 +31,8 @@ export const DEFAULT_SETTINGS: Settings = {
   laborRatePerHour: 200,
   markupPercent: 40,
   defaultPackagingPercent: 20,
+  printerWatts: 200,        // Bambu Lab P2S avg during standard PLA printing
+  electricityRatePerKwh: 6.5, // Delhi domestic ~401-800 units slab
 };
 
 export function loadSettings(): Settings {
@@ -76,6 +81,7 @@ export function exportJobsCSV(jobs: PrintJob[]): void {
     "Labor Cost (₹)",
     "Post-processing (₹)",
     "Packaging (₹)",
+    "Electricity (₹)",
     "Total Cost (₹)",
     "Markup (%)",
     "Selling Price (₹)",
@@ -89,6 +95,7 @@ export function exportJobsCSV(jobs: PrintJob[]): void {
     j.laborCost.toFixed(2),
     j.postProcessingCost.toFixed(2),
     j.packagingCost.toFixed(2),
+    j.electricityCost.toFixed(2),
     j.totalCost.toFixed(2),
     j.markupPercent.toFixed(1),
     j.sellingPrice.toFixed(2),
