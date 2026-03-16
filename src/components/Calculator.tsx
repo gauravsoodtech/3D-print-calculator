@@ -389,7 +389,7 @@ export default function Calculator() {
         </div>
 
         {/* Results */}
-        <div className="sticky top-20 order-first lg:order-none">
+        <div className="lg:sticky lg:top-20 order-first lg:order-none">
           <CostBreakdown
             result={result}
             onSave={handleSave}
