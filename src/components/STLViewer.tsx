@@ -41,8 +41,6 @@ export default function STLViewer({ stlUrl }: Props) {
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
     controls.dampingFactor = 0.08;
-    controls.autoRotate = true;
-    controls.autoRotateSpeed = 1.2;
 
     // Load STL
     let geometry: THREE.BufferGeometry | null = null;
@@ -85,6 +83,7 @@ export default function STLViewer({ stlUrl }: Props) {
     let animFrameId: number;
     function animate() {
       animFrameId = requestAnimationFrame(animate);
+      if (mesh) mesh.rotation.y += 0.003;
       controls.update();
       renderer.render(scene, camera);
     }
