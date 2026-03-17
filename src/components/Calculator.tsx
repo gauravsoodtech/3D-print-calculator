@@ -39,6 +39,9 @@ function num(v: string) {
   return isNaN(n) ? 0 : n;
 }
 
+const fmt = (n: number) =>
+  "₹" + n.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+
 function InputField({
   label, value, onChange, placeholder, prefix, hint, type = "number",
 }: {
@@ -79,18 +82,18 @@ function TimeField({
   return (
     <div>
       <label className="block text-xs font-medium text-zinc-400 mb-1.5">{label}</label>
-      <div className="flex gap-2">
-        <div className="relative flex-1">
+      <div className="flex gap-2 overflow-hidden">
+        <div className="flex flex-1 min-w-0">
           <input type="number" min="0" value={hours} onChange={(e) => onHours(e.target.value)} placeholder="0"
-            className="w-full bg-zinc-800/60 border border-zinc-700/60 rounded-xl text-sm text-zinc-100 placeholder-zinc-600 px-3 py-2.5 pr-10
+            className="flex-1 min-w-0 bg-zinc-800/60 border border-zinc-700/60 rounded-l-xl text-sm text-zinc-100 placeholder-zinc-600 px-3 py-2.5
               focus:outline-none focus:border-orange-500/60 focus:ring-2 focus:ring-orange-500/15 transition-all" />
-          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-zinc-600 pointer-events-none">hr</span>
+          <span className="flex items-center shrink-0 bg-zinc-800 border border-zinc-700/60 border-l-0 rounded-r-xl px-2.5 text-xs text-zinc-500 select-none">hr</span>
         </div>
-        <div className="relative flex-1">
+        <div className="flex flex-1 min-w-0">
           <input type="number" min="0" max="59" value={minutes} onChange={(e) => onMinutes(e.target.value)} placeholder="0"
-            className="w-full bg-zinc-800/60 border border-zinc-700/60 rounded-xl text-sm text-zinc-100 placeholder-zinc-600 px-3 py-2.5 pr-10
+            className="flex-1 min-w-0 bg-zinc-800/60 border border-zinc-700/60 rounded-l-xl text-sm text-zinc-100 placeholder-zinc-600 px-3 py-2.5
               focus:outline-none focus:border-orange-500/60 focus:ring-2 focus:ring-orange-500/15 transition-all" />
-          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-zinc-600 pointer-events-none">min</span>
+          <span className="flex items-center shrink-0 bg-zinc-800 border border-zinc-700/60 border-l-0 rounded-r-xl px-2.5 text-xs text-zinc-500 select-none">min</span>
         </div>
       </div>
     </div>
@@ -131,16 +134,12 @@ export default function Calculator() {
   const [result, setResult] = useState<JobCalcResult>(ZERO_RESULT);
   const [saved, setSaved] = useState(false);
 
-  // On mount: restore draft from sessionStorage, fallback to settings defaults
   useEffect(() => {
     const s = loadSettings();
-
-    // window flag survives navigation (component unmount/remount) but is cleared on page refresh
     const isNavigation = !!(window as unknown as Record<string, unknown>).__calcFormSession;
     (window as unknown as Record<string, unknown>).__calcFormSession = true;
 
     if (!isNavigation) {
-      // Page was refreshed — clear the draft and start fresh
       sessionStorage.removeItem(DRAFT_KEY);
       setFilamentPricePerKg(String(s.filamentPricePerKg));
       setPrinterWatts(String(s.printerWatts));
@@ -176,7 +175,6 @@ export default function Calculator() {
         return;
       } catch { /* fall through to defaults */ }
     }
-    // No draft saved yet during this navigation session — load defaults
     setFilamentPricePerKg(String(s.filamentPricePerKg));
     setPrinterWatts(String(s.printerWatts));
     setElectricityRate(String(s.electricityRatePerKwh));
@@ -185,7 +183,6 @@ export default function Calculator() {
     setMarkup(String(s.markupPercent));
   }, []);
 
-  // Save draft to sessionStorage on every field change
   useEffect(() => {
     sessionStorage.setItem(DRAFT_KEY, JSON.stringify({
       name, filamentType, isCustom, customFilament,
@@ -200,7 +197,6 @@ export default function Calculator() {
       laborHours, laborMins, laborRate, postProcessing, packaging, markup,
       quality, infillPercent]);
 
-  // Recalculate live
   useEffect(() => {
     const r = calculateJob({
       name,
@@ -283,130 +279,175 @@ export default function Calculator() {
     ? `≈ ₹${((num(printerWatts) / 1000) * (printTotalMins / 60) * num(electricityRate)).toFixed(2)} for this job`
     : undefined;
 
+  const canSave = result.totalCost > 0 && !saved;
+  const hasResult = result.totalCost > 0;
+
+  const currentInputs = {
+    itemName: name.trim() || "Unnamed Job",
+    filamentType,
+    quality,
+    infillPercent: num(infillPercent),
+    printMinutes: num(printHours) * 60 + num(printMins),
+    weightGrams: num(weightGrams),
+    sellingPrice: result.sellingPrice,
+  } satisfies QuotationItemDraft;
+
   return (
-    <div>
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-zinc-100">New Print Job</h1>
-        <p className="text-sm text-zinc-500 mt-1">Fill in the details — cost updates live as you type</p>
+    <>
+      {/* Mobile sticky bottom bar */}
+      <div className="fixed bottom-0 left-0 right-0 z-40 lg:hidden border-t border-zinc-800 bg-zinc-950/90 backdrop-blur-md px-4 pt-3 pb-6">
+        <div className="flex items-center gap-3">
+          <div className="flex-1 min-w-0">
+            <p className="text-[10px] font-medium text-zinc-500 uppercase tracking-widest mb-0.5">Selling Price</p>
+            <p className="text-xl font-bold text-orange-400 tabular-nums leading-none">
+              {hasResult ? fmt(result.sellingPrice) : "₹—"}
+            </p>
+          </div>
+          <button
+            onClick={handleSave}
+            disabled={!canSave}
+            className={`shrink-0 px-5 py-2.5 rounded-xl font-semibold text-sm transition-all ${
+              saved
+                ? "bg-emerald-500/20 border border-emerald-500/30 text-emerald-400"
+                : canSave
+                ? "bg-orange-500 hover:bg-orange-400 text-white shadow-lg shadow-orange-500/25"
+                : "bg-zinc-800 text-zinc-600 border border-zinc-700 cursor-not-allowed"
+            }`}
+          >
+            {saved ? "✓ Saved" : "Save Job"}
+          </button>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-6 items-start">
-        <div className="space-y-4">
+      {/* Page */}
+      <div className="pb-28 lg:pb-0">
+        <div className="mb-6">
+          <h1 className="text-2xl font-bold text-zinc-100">New Print Job</h1>
+          <p className="text-sm text-zinc-500 mt-1">Fill in the details — cost updates live as you type</p>
+        </div>
 
-          {/* Job Info */}
-          <SectionCard title="Job Info" icon="📋">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="sm:col-span-2">
-                <InputField type="text" label="Print Name" value={name} onChange={setName} placeholder="e.g. Dragon figurine" />
-              </div>
-              <div className="sm:col-span-2">
-                <label className="block text-xs font-medium text-zinc-400 mb-2">Filament Type</label>
-                <div className="flex flex-wrap gap-2">
-                  {FILAMENT_PRESETS.map(({ label }) => (
-                    <button key={label} type="button" onClick={() => selectPreset(label)}
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-6 items-start">
+          {/* Form */}
+          <div className="space-y-4">
+
+            {/* Job Info */}
+            <SectionCard title="Job Info" icon="📋">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="sm:col-span-2">
+                  <InputField type="text" label="Print Name" value={name} onChange={setName} placeholder="e.g. Dragon figurine" />
+                </div>
+                <div className="sm:col-span-2">
+                  <label className="block text-xs font-medium text-zinc-400 mb-2">Filament Type</label>
+                  <div className="flex flex-wrap gap-2">
+                    {FILAMENT_PRESETS.map(({ label }) => (
+                      <button key={label} type="button" onClick={() => selectPreset(label)}
+                        className={`px-3 py-1 rounded-lg text-xs font-medium transition-all border ${
+                          filamentType === label && !isCustom
+                            ? "bg-orange-500/20 border-orange-500/50 text-orange-300"
+                            : "bg-zinc-800/60 border-zinc-700/60 text-zinc-400 hover:text-zinc-200 hover:border-zinc-600"
+                        }`}>
+                        {label}
+                      </button>
+                    ))}
+                    <button type="button" onClick={selectCustom}
                       className={`px-3 py-1 rounded-lg text-xs font-medium transition-all border ${
-                        filamentType === label && !isCustom
+                        isCustom
                           ? "bg-orange-500/20 border-orange-500/50 text-orange-300"
                           : "bg-zinc-800/60 border-zinc-700/60 text-zinc-400 hover:text-zinc-200 hover:border-zinc-600"
                       }`}>
-                      {label}
+                      Other
                     </button>
-                  ))}
-                  <button type="button" onClick={selectCustom}
-                    className={`px-3 py-1 rounded-lg text-xs font-medium transition-all border ${
-                      isCustom
-                        ? "bg-orange-500/20 border-orange-500/50 text-orange-300"
-                        : "bg-zinc-800/60 border-zinc-700/60 text-zinc-400 hover:text-zinc-200 hover:border-zinc-600"
-                    }`}>
-                    Other
-                  </button>
-                </div>
-                {isCustom && (
-                  <input type="text" value={customFilament} autoFocus
-                    onChange={(e) => { setCustomFilament(e.target.value); setFilamentType(e.target.value); }}
-                    placeholder="e.g. HIPS, PC, PVA…"
-                    className="mt-2 w-full bg-zinc-800/60 border border-zinc-700/60 rounded-xl text-sm text-zinc-100 placeholder-zinc-600
-                      px-3 py-2.5 focus:outline-none focus:border-orange-500/60 focus:ring-2 focus:ring-orange-500/15 transition-all max-w-xs" />
-                )}
-              </div>
-            </div>
-          </SectionCard>
-
-          {/* Material */}
-          <SectionCard title="Material" icon="🧵">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <InputField label="Filament Price" value={filamentPricePerKg} onChange={setFilamentPricePerKg}
-                placeholder="1200" prefix="₹/kg" hint={priceHint} />
-              <InputField label="Weight Used" value={weightGrams} onChange={setWeightGrams}
-                placeholder="50" prefix="g" />
-              <InputField label="Infill %" value={infillPercent} onChange={setInfillPercent}
-                placeholder="15" hint="Display only — does not affect cost" />
-              <div>
-                <label className="block text-xs font-medium text-zinc-400 mb-1.5">Quality</label>
-                <div className="flex gap-2">
-                  {QUALITY_OPTIONS.map((q) => (
-                    <button key={q} type="button" onClick={() => setQuality(q)}
-                      className={`flex-1 py-1.5 rounded-lg text-xs font-medium transition-all border ${
-                        quality === q
-                          ? "bg-orange-500/20 border-orange-500/50 text-orange-300"
-                          : "bg-zinc-800/60 border-zinc-700/60 text-zinc-400 hover:text-zinc-200 hover:border-zinc-600"
-                      }`}>
-                      {q}
-                    </button>
-                  ))}
+                  </div>
+                  {isCustom && (
+                    <input type="text" value={customFilament} autoFocus
+                      onChange={(e) => { setCustomFilament(e.target.value); setFilamentType(e.target.value); }}
+                      placeholder="e.g. HIPS, PC, PVA…"
+                      className="mt-2 w-full bg-zinc-800/60 border border-zinc-700/60 rounded-xl text-sm text-zinc-100 placeholder-zinc-600
+                        px-3 py-2.5 focus:outline-none focus:border-orange-500/60 focus:ring-2 focus:ring-orange-500/15 transition-all max-w-xs" />
+                  )}
                 </div>
               </div>
-            </div>
-          </SectionCard>
+            </SectionCard>
 
-          {/* Time & Electricity */}
-          <SectionCard title="Time & Electricity" icon="⚡">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <TimeField label="Print Time" hours={printHours} minutes={printMins}
-                onHours={setPrintHours} onMinutes={setPrintMins} />
-              <TimeField label="Active Labor Time" hours={laborHours} minutes={laborMins}
-                onHours={setLaborHours} onMinutes={setLaborMins} />
-              <InputField label="Labor Rate" value={laborRate} onChange={setLaborRate}
-                placeholder="200" prefix="₹/hr" />
-              <InputField label="Printer Power" value={printerWatts} onChange={setPrinterWatts}
-                placeholder="350" prefix="W" hint="Bambu P2S avg ≈ 200W (PLA), peak 1200W" />
-              <InputField label="Electricity Rate" value={electricityRate} onChange={setElectricityRate}
-                placeholder="6.5" prefix="₹/kWh" hint={elecCostHint ?? "Delhi: ₹6.50/kWh (401–800 units)"} />
-            </div>
-          </SectionCard>
+            {/* Material */}
+            <SectionCard title="Material" icon="🧵">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <InputField label="Filament Price" value={filamentPricePerKg} onChange={setFilamentPricePerKg}
+                  placeholder="1200" prefix="₹/kg" hint={priceHint} />
+                <InputField label="Weight Used" value={weightGrams} onChange={setWeightGrams}
+                  placeholder="50" prefix="g" />
+                <InputField label="Infill %" value={infillPercent} onChange={setInfillPercent}
+                  placeholder="15" hint="Display only — does not affect cost" />
+                <div>
+                  <label className="block text-xs font-medium text-zinc-400 mb-1.5">Quality</label>
+                  <div className="flex gap-2">
+                    {QUALITY_OPTIONS.map((q) => (
+                      <button key={q} type="button" onClick={() => setQuality(q)}
+                        className={`flex-1 py-1.5 rounded-lg text-xs font-medium transition-all border ${
+                          quality === q
+                            ? "bg-orange-500/20 border-orange-500/50 text-orange-300"
+                            : "bg-zinc-800/60 border-zinc-700/60 text-zinc-400 hover:text-zinc-200 hover:border-zinc-600"
+                        }`}>
+                        {q}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </SectionCard>
 
-          {/* Other Costs */}
-          <SectionCard title="Other Costs" icon="📦">
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <InputField label="Post-processing" value={postProcessing} onChange={setPostProcessing}
-                placeholder="0" prefix="₹" hint="Sanding, painting, IPA…" />
-              <InputField label="Packaging" value={packaging} onChange={setPackaging}
-                placeholder="20" prefix="%" hint="% of subtotal" />
-              <InputField label="Markup" value={markup} onChange={setMarkup}
-                placeholder="40" prefix="%" hint="Profit margin on top of cost" />
-            </div>
-          </SectionCard>
-        </div>
+            {/* Time & Electricity */}
+            <SectionCard title="Time & Electricity" icon="⚡">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <TimeField label="Print Time" hours={printHours} minutes={printMins}
+                  onHours={setPrintHours} onMinutes={setPrintMins} />
+                <TimeField label="Active Labor Time" hours={laborHours} minutes={laborMins}
+                  onHours={setLaborHours} onMinutes={setLaborMins} />
+                <InputField label="Labor Rate" value={laborRate} onChange={setLaborRate}
+                  placeholder="200" prefix="₹/hr" />
+                <InputField label="Printer Power" value={printerWatts} onChange={setPrinterWatts}
+                  placeholder="350" prefix="W" hint="Bambu P2S avg ≈ 200W (PLA), peak 1200W" />
+                <InputField label="Electricity Rate" value={electricityRate} onChange={setElectricityRate}
+                  placeholder="6.5" prefix="₹/kWh" hint={elecCostHint ?? "Delhi: ₹6.50/kWh (401–800 units)"} />
+              </div>
+            </SectionCard>
 
-        {/* Results */}
-        <div className="lg:sticky lg:top-20 order-first lg:order-none">
-          <CostBreakdown
-            result={result}
-            onSave={handleSave}
-            canSave={result.totalCost > 0 && !saved}
-            saved={saved}
-            currentInputs={{
-              itemName: name.trim() || "Unnamed Job",
-              filamentType,
-              quality,
-              infillPercent: num(infillPercent),
-              printMinutes: num(printHours) * 60 + num(printMins),
-              weightGrams: num(weightGrams),
-              sellingPrice: result.sellingPrice,
-            } satisfies QuotationItemDraft}
-          />
+            {/* Other Costs */}
+            <SectionCard title="Other Costs" icon="📦">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <InputField label="Post-processing" value={postProcessing} onChange={setPostProcessing}
+                  placeholder="0" prefix="₹" hint="Sanding, painting, IPA…" />
+                <InputField label="Packaging" value={packaging} onChange={setPackaging}
+                  placeholder="20" prefix="%" hint="% of subtotal" />
+                <InputField label="Markup" value={markup} onChange={setMarkup}
+                  placeholder="40" prefix="%" hint="Profit margin on top of cost" />
+              </div>
+            </SectionCard>
+
+            {/* Full breakdown — mobile only, below the form */}
+            <div className="lg:hidden">
+              <CostBreakdown
+                result={result}
+                onSave={handleSave}
+                canSave={canSave}
+                saved={saved}
+                currentInputs={currentInputs}
+              />
+            </div>
+          </div>
+
+          {/* Results — desktop only, sticky right column */}
+          <div className="hidden lg:block lg:sticky lg:top-20">
+            <CostBreakdown
+              result={result}
+              onSave={handleSave}
+              canSave={canSave}
+              saved={saved}
+              currentInputs={currentInputs}
+            />
+          </div>
         </div>
       </div>
-    </div>
+    </>
   );
 }
